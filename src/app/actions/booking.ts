@@ -93,7 +93,7 @@ export async function createBooking(data: {
   // 1. Validar datos con Zod
   const validation = bookingSchema.safeParse(data);
   if (!validation.success) {
-    const firstError = validation.error.errors[0];
+    const firstError = validation.error.issues[0];
     return {
       success: false,
       errorCode: 'VALIDATION_ERROR',
