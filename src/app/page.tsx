@@ -3,15 +3,18 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
-      {/* Background elegant gradient/effects */}
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#cba258]/10 via-[#0a0a0a] to-[#0a0a0a] -z-10"></div>
-      <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#cba258]/5 via-transparent to-transparent -z-10"></div>
+    <main className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-[#0a0a0a]">
       
-      <div className="z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        {/* Left Side: Branding */}
-        <div className="lg:col-span-5 flex flex-col justify-center space-y-8 pt-10">
-          <div className="relative w-48 h-48 md:w-64 md:h-64 mb-2">
+      {/* LEFT SIDE: Light Premium Branding (Perfect for black text logo) */}
+      <div className="w-full lg:w-5/12 bg-[#fdfbf7] flex flex-col justify-center items-center p-8 lg:p-16 relative overflow-hidden border-b lg:border-b-0 lg:border-r border-[#cba258]/30">
+        {/* Subtle decorative background elements */}
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 pointer-events-none"></div>
+        <div className="absolute -top-32 -left-32 w-64 h-64 bg-[#cba258]/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-[#cba258]/10 rounded-full blur-3xl"></div>
+
+        <div className="z-10 flex flex-col items-center max-w-md text-center">
+          {/* LOGO */}
+          <div className="relative w-64 h-64 md:w-80 md:h-80 mb-8 drop-shadow-xl hover:scale-105 transition-transform duration-700">
             <Image 
               src="/logo.png" 
               alt="Logo Román & Delgado" 
@@ -21,36 +24,34 @@ export default function Home() {
             />
           </div>
           
-          {/* Si tu imagen ya trae el texto (Román & Delgado - Despacho de abogados), 
-              puedes dejar esto comentado. Si la imagen es solo la balanza, descoméntalo.
-          <div>
-            <h1 className="font-heading text-5xl md:text-6xl font-medium text-white tracking-tight mb-2">
-              Román &<br />
-              <span className="text-[#cba258] italic">Delgado</span>
-            </h1>
-            <h2 className="text-sm md:text-base text-zinc-400 uppercase tracking-[0.2em] font-semibold mt-4">
-              Despacho de Abogados
-            </h2>
-          </div>
-          */}
-          
           <div className="space-y-6">
-            <p className="text-zinc-300 text-lg leading-relaxed font-light">
+            <div className="h-[1px] w-24 bg-[#cba258] mx-auto"></div>
+            <p className="text-zinc-600 text-lg md:text-xl leading-relaxed font-light tracking-wide">
               Excelencia, discreción y resultados. Agende su consulta legal con nuestro equipo de expertos y asegure su tranquilidad.
             </p>
-            <div className="flex items-center gap-4">
-              <div className="h-[1px] w-12 bg-[#cba258]"></div>
-              <p className="text-xs text-[#cba258] uppercase tracking-widest font-semibold">Reserva en línea</p>
-            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Side: Form */}
-        <div className="lg:col-span-7 bg-[#141414] p-6 sm:p-10 rounded-2xl shadow-2xl border border-zinc-800 relative">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-[2px] bg-gradient-to-r from-transparent via-[#cba258] to-transparent"></div>
-          <BookingForm />
+      {/* RIGHT SIDE: Dark Form Section */}
+      <div className="w-full lg:w-7/12 flex flex-col justify-center items-center p-4 py-12 lg:p-12 xl:p-20 relative">
+        {/* Background dark gradients */}
+        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#cba258]/10 via-transparent to-transparent pointer-events-none"></div>
+        
+        <div className="w-full max-w-2xl relative z-10">
+          <div className="mb-10 lg:mb-12 text-center lg:text-left">
+            <h2 className="text-[#cba258] text-sm uppercase tracking-[0.3em] font-semibold mb-3">Portal de Clientes</h2>
+            <h1 className="text-3xl md:text-4xl font-heading text-white">Reserva en Línea</h1>
+          </div>
+
+          <div className="bg-[#111111] p-6 sm:p-10 rounded-none shadow-2xl border border-zinc-800/80 relative backdrop-blur-sm">
+            {/* Golden top border accent */}
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#cba258] to-transparent"></div>
+            <BookingForm />
+          </div>
         </div>
       </div>
+      
     </main>
   );
 }

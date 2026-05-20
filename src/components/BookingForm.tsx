@@ -75,7 +75,20 @@ export default function BookingForm() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    let formattedValue = value;
+    
+    // Validar Nombre y Apellido: Solo letras y espacios
+    if (name === "nombre" || name === "apellido") {
+      formattedValue = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "");
+    }
+    
+    // Validar WhatsApp: Solo números y símbolos de teléfono (+ - paréntesis espacios)
+    if (name === "whatsapp") {
+      formattedValue = value.replace(/[^\d\s\+\-\(\)]/g, "");
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: formattedValue }));
     setErrorMessage(null);
   };
 
