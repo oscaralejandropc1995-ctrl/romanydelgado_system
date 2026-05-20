@@ -8,7 +8,24 @@ import { es } from 'date-fns/locale';
 import React from 'react';
 import { z } from 'zod';
 
+import { google } from 'googleapis';
+
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// ─── Configuración de Google Calendar ──────────────────────────
+function getGoogleAuth() {
+  if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+    return null;
+  }
+  
+  return new google.auth.JWT(
+    process.env.GOOGLE_CLIENT_EMAIL,
+    undefined,
+    // Las variables de entorno a veces escapan los saltos de línea
+    process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    ['https://www.googleapis.com/auth/calendar.events']
+  );
+}
 
 // ─── Esquema de validación con Zod ─────────────────────────────
 const bookingSchema = z.object({
@@ -110,7 +127,7 @@ export async function createBooking(data: {
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
-          from: 'Román & Delgado <onboarding@resend.dev>', // Cambia esto por tu dominio verificado en Resend
+          from: 'Román & Delgado <citas@romanydelgado.com>', 
           to: [validation.data.email],
           subject: 'Confirmación de su cita - Román & Delgado',
           react: React.createElement(BookingConfirmation, {
@@ -126,6 +143,35 @@ export async function createBooking(data: {
       }
     } else {
       console.warn("RESEND_API_KEY no configurada. El correo de confirmación no fue enviado.");
+    }
+
+    // 5. Crear Evento en Google Calendar
+    try {
+      const auth = getGoogleAuth();
+      if (auth && process.env.GOOGLE_CALENDAR_ID) {
+        const calendar = google.calendar({ version: 'v3', auth });
+        
+        await calendar.events.insert({
+          calendarId: process.env.GOOGLE_CALENDAR_ID,
+          requestBody: {
+            summary: `Cita Legal: ${validation.data.nombre} ${validation.data.apellido}`,
+            description: `Sede/Modalidad: ${validation.data.ciudad}\nCliente: ${validation.data.nombre} ${validation.data.apellido}\nEmail: ${validation.data.email}\nWhatsApp: ${validation.data.whatsapp}`,
+            start: {
+              dateTime: validation.data.fecha_hora_inicio,
+              timeZone: 'America/Caracas', // Ajusta según la zona horaria real
+            },
+            end: {
+              dateTime: validation.data.fecha_hora_fin,
+              timeZone: 'America/Caracas',
+            },
+          },
+        });
+      } else {
+        console.warn('Credenciales de Google Calendar incompletas o no configuradas.');
+      }
+    } catch (calendarError) {
+      console.error('Error al crear evento en Google Calendar:', calendarError);
+      // No fallamos si el calendario falla, la cita ya está en Supabase.
     }
 
     return { success: true };
