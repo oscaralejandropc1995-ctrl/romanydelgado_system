@@ -44,7 +44,8 @@ const bookingSchema = z.object({
     .max(20, 'El número de WhatsApp no puede exceder 20 caracteres.')
     .regex(/^[\d\s\+\-\(\)]+$/, 'El número de WhatsApp solo puede contener dígitos, espacios, +, - o paréntesis.'),
   ciudad: z.enum(['Valencia', 'Caracas', 'La Guaira', 'Tucacas', 'Virtual'] as const, {
-    errorMap: () => ({ message: 'Debe seleccionar una sede o modalidad válida.' }),
+    invalid_type_error: 'Debe seleccionar una sede o modalidad válida.',
+    required_error: 'Debe seleccionar una sede o modalidad válida.',
   }),
   fecha_hora_inicio: z
     .string()
