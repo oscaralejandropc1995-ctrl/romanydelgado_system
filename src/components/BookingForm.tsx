@@ -43,6 +43,7 @@ export default function BookingForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const isDayDisabled = (dateToCheck: Date) => {
     if (isBefore(startOfDay(dateToCheck), startOfDay(new Date()))) {
@@ -190,7 +191,7 @@ export default function BookingForm() {
           <CalendarIcon className="w-4 h-4 text-[#cba258]" />
           2. Seleccione la Fecha
         </Label>
-        <Popover>
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
           <PopoverTrigger
             className={cn(
               "flex w-full items-center justify-start text-left font-normal h-12 px-4 bg-[#0a0a0a] text-white border border-zinc-800 transition-all hover:border-[#cba258]/50 focus:ring-1 focus:ring-[#cba258]",
@@ -204,7 +205,10 @@ export default function BookingForm() {
             <Calendar
               mode="single"
               selected={date}
-              onSelect={setDate}
+              onSelect={(selectedDate) => {
+                setDate(selectedDate);
+                if (selectedDate) setIsCalendarOpen(false);
+              }}
               disabled={isDayDisabled}
               className="text-white"
             />
