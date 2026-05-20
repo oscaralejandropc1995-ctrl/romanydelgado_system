@@ -18,13 +18,11 @@ function getGoogleAuth() {
     return null;
   }
   
-  return new google.auth.JWT(
-    process.env.GOOGLE_CLIENT_EMAIL,
-    undefined,
-    // Las variables de entorno a veces escapan los saltos de línea
-    process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    ['https://www.googleapis.com/auth/calendar.events']
-  );
+  return new google.auth.JWT({
+    email: process.env.GOOGLE_CLIENT_EMAIL,
+    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    scopes: ['https://www.googleapis.com/auth/calendar.events']
+  });
 }
 
 // ─── Esquema de validación con Zod ─────────────────────────────
