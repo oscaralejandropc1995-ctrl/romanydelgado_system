@@ -42,6 +42,7 @@ export default function BookingForm() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isDayDisabled = (dateToCheck: Date) => {
     if (isBefore(startOfDay(dateToCheck), startOfDay(new Date()))) {
@@ -69,17 +70,21 @@ export default function BookingForm() {
     }
     setDate(undefined);
     setTime("");
+    setErrorMessage(null);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrorMessage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+
     if (!city || !date || !time || !formData.nombre || !formData.apellido || !formData.email || !formData.whatsapp) {
-      alert("Por favor complete todos los campos.");
+      setErrorMessage("Por favor complete todos los campos.");
       return;
     }
 
@@ -107,11 +112,11 @@ export default function BookingForm() {
       if (response.success) {
         setIsSuccess(true);
       } else {
-        alert("Error al agendar la cita: " + response.error);
+        setErrorMessage(response.error || "Ocurrió un error inesperado al agendar la cita.");
       }
     } catch (error) {
       console.error(error);
-      alert("Ocurrió un error al procesar su solicitud.");
+      setErrorMessage("Error de conexión. Verifique su internet e intente nuevamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -273,6 +278,12 @@ export default function BookingForm() {
           </div>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="p-4 bg-red-950/50 border border-red-900/50 rounded-none text-red-200 text-sm animate-in fade-in slide-in-from-bottom-2">
+          {errorMessage}
+        </div>
+      )}
 
       <Button 
         type="submit" 
