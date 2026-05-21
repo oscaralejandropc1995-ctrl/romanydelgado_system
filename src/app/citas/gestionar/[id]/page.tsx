@@ -32,9 +32,14 @@ export default async function GestionarCitaPage({ params }: { params: Promise<{ 
     );
   }
 
+  // Convertir la fecha a la zona horaria de Caracas forzando la visualización correcta
   const dateObj = new Date(cita.fecha_hora_inicio);
-  const fechaStr = format(dateObj, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
-  const horaStr = format(dateObj, "hh:mm a");
+  
+  // Normalizador para evitar que Netlify (UTC) cambie la hora mostrada al cliente
+  const caracasDate = new Date(dateObj.toLocaleString('en-US', { timeZone: 'America/Caracas' }));
+  
+  const fechaStr = format(caracasDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+  const horaStr = format(caracasDate, "hh:mm a");
 
   const isExpired = isBefore(dateObj, new Date());
 

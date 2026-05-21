@@ -165,10 +165,12 @@ export async function createBooking(data: {
       // No fallamos si el calendario falla, la cita ya está en Supabase.
     }
 
-    // 4. Preparar formato de fechas para el correo
+    // 4. Preparar formato de fechas para el correo (Asegurando zona horaria de Caracas)
     const dateObj = new Date(validation.data.fecha_hora_inicio);
-    const fechaFormatada = format(dateObj, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
-    const horaFormatada = format(dateObj, "HH:mm");
+    const caracasDate = new Date(dateObj.toLocaleString('en-US', { timeZone: 'America/Caracas' }));
+    
+    const fechaFormatada = format(caracasDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+    const horaFormatada = format(caracasDate, "hh:mm a");
 
     // 5. Enviar correo de confirmación con Resend
     if (process.env.RESEND_API_KEY) {
