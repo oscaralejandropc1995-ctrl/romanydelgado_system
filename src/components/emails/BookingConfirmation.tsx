@@ -31,10 +31,10 @@ export default function BookingConfirmation({
   
   // URLs para mapas
   const locationUrls: Record<string, string> = {
-    "Valencia": "https://maps.google.com/?q=Valencia,Carabobo",
-    "Caracas": "https://maps.google.com/?q=Caracas,Distrito+Capital",
-    "La Guaira": "https://maps.google.com/?q=La+Guaira,Vargas",
-    "Tucacas": "https://maps.google.com/?q=Tucacas,Falcon",
+    "Valencia": "https://maps.app.goo.gl/qJ3fVy2ERezRohBE7",
+    "Caracas": "https://maps.app.goo.gl/x7R9NJYYDRWrkA1a7",
+    "La Guaira": "https://maps.app.goo.gl/KyxGvKAoT3gkSi6j6",
+    "Tucacas": "https://maps.app.goo.gl/mzLdvYFS2KBAJap7A",
     "Virtual": "https://meet.google.com/"
   };
 
@@ -141,33 +141,33 @@ const subtitle = {
   marginBottom: "10px",
 };
 const text = {
-  color: "#e2e8f0",
+  color: "#f4f4f5", // Más blanco para contraste alto
   fontSize: "16px",
-  lineHeight: "24px",
+  lineHeight: "26px", // Mejor interlineado
   fontWeight: "300",
 };
 const detailsContainer = {
-  backgroundColor: "#0a0a0a",
+  backgroundColor: "#000000",
   padding: "24px",
-  borderLeft: "2px solid #cba258",
+  borderLeft: "3px solid #cba258",
   margin: "24px 0",
 };
 const detailText = {
-  color: "#ffffff",
+  color: "#f4f4f5",
   fontSize: "16px",
-  margin: "8px 0",
-  fontWeight: "300",
+  margin: "12px 0",
+  fontWeight: "400", // Un poco más grueso
 };
 const buttonContainer = {
-  marginTop: "20px",
+  marginTop: "24px",
 };
 const mapButton = {
   backgroundColor: "#cba258",
   color: "#000000",
-  padding: "12px 20px",
-  borderRadius: "2px",
+  padding: "12px 24px",
+  borderRadius: "4px",
   textDecoration: "none",
-  fontWeight: "600",
+  fontWeight: "bold",
   fontSize: "14px",
   display: "inline-block",
   textAlign: "center" as const,
@@ -176,29 +176,34 @@ const manageContainer = {
   textAlign: "center" as const,
   marginTop: "32px",
   marginBottom: "16px",
-  padding: "20px",
-  backgroundColor: "#1a1a1a",
+  padding: "24px",
+  backgroundColor: "#1f1f1f", // Un poco más claro que el fondo para que resalte
+  borderRadius: "8px",
 };
 const manageLink = {
-  color: "#cba258",
+  color: "#e2b86a", // Dorado más brillante para el enlace
   textDecoration: "underline",
-  fontSize: "15px",
-  fontWeight: "500",
+  fontSize: "16px",
+  fontWeight: "bold",
   display: "inline-block",
-  marginTop: "8px",
+  marginTop: "12px",
 };
 const hr = {
-  borderColor: "#333",
-  margin: "24px 0",
+  borderColor: "#404040",
+  margin: "32px 0",
 };
 const footer = {
-  color: "#64748b",
-  fontSize: "13px",
-  lineHeight: "22px",
+  color: "#a1a1aa", // Zinc-400 (gris claro legible en fondo negro)
+  fontSize: "14px",
+  lineHeight: "24px",
   textAlign: "center" as const,
-  fontWeight: "300",
+  fontWeight: "400",
 };
 const footerText = {
-  ...footer,
-  margin: "4px 0",
+  color: "#a1a1aa", // Aplicamos el mismo color claro aquí también
+  fontSize: "14px",
+  lineHeight: "24px",
+  textAlign: "center" as const,
+  fontWeight: "400",
+  margin: "8px 0",
 };
