@@ -190,34 +190,52 @@ export async function getAvailableTimeSlots(dateString: string) {
   
   try {
     const auth = getGoogleAuth();
-    if (!auth || !process.env.GOOGLE_CALENDAR_ID) {
-      // Fallback: Si no hay credenciales, devolver todos los horarios estándar
+    const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
+    
+    if (!auth || !calendarId) {
       console.warn("Credenciales de Google no configuradas para freebusy.");
       return { success: true, availableSlots: standardSlots };
     }
 
     const calendar = google.calendar({ version: 'v3', auth });
     
-    // Configurar el inicio y fin del día en la zona horaria de Venezuela
-    const startDate = new Date(`${dateString}T00:00:00-04:00`);
-    const endDate = new Date(`${dateString}T23:59:59-04:00`);
+    // Forzar la construcción exacta de las fechas con offset de Caracas (-04:00)
+    // Usamos el formato estricto ISO 8601 para evitar confusiones de timezone en el servidor Node (UTC)
+    const timeMinStr = `${dateString}T00:00:00-04:00`;
+    const timeMaxStr = `${dateString}T23:59:59-04:00`;
+    
+    const startDate = new Date(timeMinStr);
+    const endDate = new Date(timeMaxStr);
+
+    console.log(`Consultando freebusy para ${calendarId} entre ${startDate.toISOString()} y ${endDate.toISOString()}`);
 
     const response = await calendar.freebusy.query({
       requestBody: {
         timeMin: startDate.toISOString(),
         timeMax: endDate.toISOString(),
         timeZone: 'America/Caracas',
-        items: [{ id: process.env.GOOGLE_CALENDAR_ID }]
+        items: [{ id: calendarId }]
       }
     });
 
-    const busyBlocks = response.data.calendars?.[process.env.GOOGLE_CALENDAR_ID]?.busy || [];
+    const calendarData = response.data.calendars?.[calendarId];
+    
+    // Validar si Google devolvió un error específico para este calendario
+    if (calendarData?.errors) {
+      console.error("Error devuelto por la API de Google para este calendario:", calendarData.errors);
+      // Si el calendario falla (ej. no está compartido), devolvemos todos los horarios temporalmente
+      return { success: true, availableSlots: standardSlots };
+    }
+
+    const busyBlocks = calendarData?.busy || [];
+    console.log(`Bloques ocupados devueltos por Google para el ${dateString}:`, JSON.stringify(busyBlocks));
     
     // Filtrar los horarios cruzándolos con los bloques ocupados
     const availableSlots = standardSlots.filter(slot => {
-      // Crear objeto Date para el inicio y fin de cada "slot" potencial
-      const slotStart = new Date(`${dateString}T${slot}:00-04:00`);
-      const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000); // Duración de 1 hora
+      // Crear objeto Date para el inicio y fin estricto en UTC-4
+      const slotStartStr = `${dateString}T${slot}:00-04:00`;
+      const slotStart = new Date(slotStartStr);
+      const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000); // +1 hora
 
       // Comprobar si el "slot" se solapa con algún bloque ocupado en Google Calendar
       const isBusy = busyBlocks.some(busy => {
@@ -228,13 +246,16 @@ export async function getAvailableTimeSlots(dateString: string) {
         return slotStart < busyEnd && slotEnd > busyStart;
       });
 
-      return !isBusy; // Si NO está ocupado, incluirlo en availableSlots
+      return !isBusy;
     });
 
+    console.log(`Horarios disponibles finalmente calculados:`, availableSlots);
     return { success: true, availableSlots };
 
-  } catch (error) {
-    console.error('Error consultando disponibilidad en Google Calendar:', error);
+  } catch (error: any) {
+    console.error('Error FATAL consultando disponibilidad en Google Calendar:', error);
+    console.log(error); // Solicitado: log explícito del error completo
+    // Para no bloquear la UI si la API cae, devolvemos un array vacío pero con el mensaje, o fallamos con error
     return { success: false, error: "No se pudo consultar la disponibilidad en este momento." };
   }
 }
