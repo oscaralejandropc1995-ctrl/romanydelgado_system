@@ -206,7 +206,8 @@ export async function createBooking(data: {
 // ─── Consultar Disponibilidad en Tiempo Real ───────────────────
 export async function getAvailableTimeSlots(dateString: string) {
   // dateString debe tener el formato "YYYY-MM-DD"
-  const standardSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
+  // Horario: 9am a 6pm, pausa de almuerzo de 12pm a 2pm.
+  const standardSlots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"];
   
   try {
     const auth = getGoogleAuth();
