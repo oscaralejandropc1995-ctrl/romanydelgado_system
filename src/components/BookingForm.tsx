@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { format, isBefore, startOfDay, getDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar as CalendarIcon, CheckCircle2, Clock, MapPin, User, Mail, Phone } from "lucide-react";
-import { createBooking } from "@/app/actions/booking";
+import { createBooking, getAvailableTimeSlots } from "@/app/actions/booking";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -25,10 +25,7 @@ import { Label } from "@/components/ui/label";
 
 type City = "Valencia" | "Caracas" | "La Guaira" | "Tucacas" | "Virtual" | "";
 
-const TIME_SLOTS = [
-  "08:00", "09:00", "10:00", "11:00", "12:00",
-  "13:00", "14:00", "15:00", "16:00"
-];
+
 
 export default function BookingForm() {
   const [city, setCity] = useState<City>("");
@@ -44,6 +41,8 @@ export default function BookingForm() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const isDayDisabled = (dateToCheck: Date) => {
     if (isBefore(startOfDay(dateToCheck), startOfDay(new Date()))) {
@@ -72,6 +71,32 @@ export default function BookingForm() {
     setDate(undefined);
     setTime("");
     setErrorMessage(null);
+  };
+
+  const handleDateSelect = async (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+    setTime(""); // Resetear hora si cambia el día
+    if (!selectedDate) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    setIsCalendarOpen(false);
+    setIsLoadingSlots(true);
+    setErrorMessage(null);
+    
+    // Consultar disponibilidad en tiempo real
+    const formattedDate = format(selectedDate, "yyyy-MM-dd");
+    const response = await getAvailableTimeSlots(formattedDate);
+    
+    if (response.success && response.availableSlots) {
+      setAvailableSlots(response.availableSlots);
+    } else {
+      setErrorMessage(response.error || "Error al cargar la disponibilidad.");
+      setAvailableSlots([]);
+    }
+    
+    setIsLoadingSlots(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,10 +230,7 @@ export default function BookingForm() {
             <Calendar
               mode="single"
               selected={date}
-              onSelect={(selectedDate) => {
-                setDate(selectedDate);
-                if (selectedDate) setIsCalendarOpen(false);
-              }}
+              onSelect={handleDateSelect}
               disabled={isDayDisabled}
               className="text-white"
             />
@@ -222,24 +244,35 @@ export default function BookingForm() {
           <Clock className="w-4 h-4 text-[#cba258]" />
           3. Seleccione la Hora
         </Label>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-          {TIME_SLOTS.map((slot) => (
-            <Button
-              key={slot}
-              type="button"
-              variant={time === slot ? "default" : "outline"}
-              className={cn(
-                "h-11 transition-all rounded-none font-medium",
-                time === slot 
-                  ? "bg-[#cba258] text-black hover:bg-[#d4b06a] border-[#cba258]" 
-                  : "bg-[#0a0a0a] text-zinc-400 border-zinc-800 hover:border-[#cba258]/50 hover:text-[#cba258]"
-              )}
-              onClick={() => setTime(slot)}
-            >
-              {slot}
-            </Button>
-          ))}
-        </div>
+        {isLoadingSlots ? (
+          <div className="flex items-center gap-3 text-zinc-400 py-4 animate-in fade-in">
+            <div className="w-5 h-5 border-2 border-zinc-600 border-t-[#cba258] rounded-full animate-spin" />
+            <span className="text-sm">Consultando disponibilidad en tiempo real...</span>
+          </div>
+        ) : availableSlots.length === 0 && date ? (
+          <div className="p-4 bg-zinc-900/50 border border-zinc-800 text-zinc-400 text-sm animate-in fade-in">
+            Lo sentimos, no hay horarios disponibles para esta fecha. Por favor seleccione otro día.
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-2">
+            {availableSlots.map((slot) => (
+              <Button
+                key={slot}
+                type="button"
+                variant={time === slot ? "default" : "outline"}
+                className={cn(
+                  "h-11 transition-all rounded-none font-medium",
+                  time === slot 
+                    ? "bg-[#cba258] text-black hover:bg-[#d4b06a] border-[#cba258]" 
+                    : "bg-[#0a0a0a] text-zinc-400 border-zinc-800 hover:border-[#cba258]/50 hover:text-[#cba258]"
+                )}
+                onClick={() => setTime(slot)}
+              >
+                {slot}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 4. Datos del Cliente */}
