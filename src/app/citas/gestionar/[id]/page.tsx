@@ -4,8 +4,9 @@ import { es } from 'date-fns/locale';
 import { Calendar, Clock, MapPin, User, AlertCircle, CheckCircle2 } from 'lucide-react';
 import CancelButton from './CancelButton';
 
-export default async function GestionarCitaPage({ params }: { params: { id: string } }) {
-  const citaId = params.id;
+export default async function GestionarCitaPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const citaId = resolvedParams.id;
 
   // 1. Obtener los detalles de la cita desde Supabase
   const { data: cita, error } = await supabase
