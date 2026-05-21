@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { format } from 'date-fns';
+import { format, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, Clock, MapPin, User, AlertCircle, CheckCircle2 } from 'lucide-react';
 import CancelButton from './CancelButton';
@@ -35,6 +35,8 @@ export default async function GestionarCitaPage({ params }: { params: Promise<{ 
   const dateObj = new Date(cita.fecha_hora_inicio);
   const fechaStr = format(dateObj, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   const horaStr = format(dateObj, "hh:mm a");
+
+  const isExpired = isBefore(dateObj, new Date());
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center p-4">
@@ -100,14 +102,23 @@ export default async function GestionarCitaPage({ params }: { params: Promise<{ 
           </div>
 
           <div className="p-8 bg-[#0f0f0f] border-t border-zinc-800">
-            <div className="mb-6">
-              <p className="text-sm text-zinc-400">
-                Si no puede asistir, le agradecemos que cancele su cita para liberar el espacio para otro cliente. Al cancelar, esta acción no se puede deshacer.
-              </p>
-            </div>
-            
-            <CancelButton citaId={citaId} />
-            
+            {isExpired ? (
+              <div className="flex items-start gap-3 p-4 bg-zinc-900/40 border border-zinc-800/80 text-zinc-400 rounded-sm">
+                <AlertCircle className="w-5 h-5 text-zinc-500 shrink-0 mt-0.5" />
+                <p className="text-sm leading-relaxed">
+                  Esta cita ya ocurrió o expiró, por lo que no puede ser cancelada ni modificada.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <p className="text-sm text-zinc-400">
+                    Si no puede asistir, le agradecemos que cancele su cita para liberar el espacio para otro cliente. Al cancelar, esta acción no se puede deshacer.
+                  </p>
+                </div>
+                <CancelButton citaId={citaId} />
+              </>
+            )}
           </div>
         </div>
       </div>
