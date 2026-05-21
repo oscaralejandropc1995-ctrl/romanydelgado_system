@@ -85,15 +85,16 @@ function humanizeSupabaseError(code: string, message: string): string {
 }
 
 // ─── Server Action principal ──────────────────────────────────
-export async function createBooking(data: {
-  nombre: string;
-  apellido: string;
-  email: string;
-  whatsapp: string;
-  ciudad: string;
-  fecha_hora_inicio: string;
-  fecha_hora_fin: string;
-}) {
+export async function createBooking(formData: FormData) {
+  const data = {
+    nombre: formData.get('nombre') as string,
+    apellido: formData.get('apellido') as string,
+    email: formData.get('email') as string,
+    whatsapp: formData.get('whatsapp') as string,
+    ciudad: formData.get('ciudad') as string,
+    fecha_hora_inicio: formData.get('fecha_hora_inicio') as string,
+    fecha_hora_fin: formData.get('fecha_hora_fin') as string,
+  };
   // 1. Validar datos con Zod
   const validation = bookingSchema.safeParse(data);
   if (!validation.success) {
@@ -172,6 +173,23 @@ export async function createBooking(data: {
     const fechaFormatada = format(caracasDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
     const horaFormatada = format(caracasDate, "hh:mm a");
 
+    // 4.5 Procesar archivo adjunto si existe (Solo Virtual)
+    const attachments = [];
+    const documento = formData.get('documento') as File | null;
+    
+    if (documento) {
+      try {
+        const arrayBuffer = await documento.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        attachments.push({
+          filename: documento.name,
+          content: buffer
+        });
+      } catch (err) {
+        console.error("Error al procesar el archivo adjunto:", err);
+      }
+    }
+
     // 5. Enviar correo de confirmación con Resend
     if (process.env.RESEND_API_KEY) {
       try {
@@ -186,6 +204,7 @@ export async function createBooking(data: {
             hora: horaFormatada,
             citaId: citaId, // Pasamos el ID real a la plantilla
           }),
+          attachments: attachments.length > 0 ? attachments : undefined,
         });
       } catch (emailError) {
         console.error('Error enviando el correo con Resend:', emailError);

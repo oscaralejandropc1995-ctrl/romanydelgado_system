@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { format, isBefore, startOfDay, getDay } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar as CalendarIcon, CheckCircle2, Clock, MapPin, User, Mail, Phone } from "lucide-react";
+import { Calendar as CalendarIcon, CheckCircle2, Clock, MapPin, User, Mail, Phone, FileText, UploadCloud } from "lucide-react";
 import { createBooking, getAvailableTimeSlots } from "@/app/actions/booking";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ export default function BookingForm() {
     email: "",
     whatsapp: "",
   });
+  const [documento, setDocumento] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -139,17 +140,20 @@ export default function BookingForm() {
       const endDate = new Date(startDate);
       endDate.setHours(hours + 1, minutes, 0, 0);
 
-      const bookingData = {
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        email: formData.email,
-        whatsapp: formData.whatsapp,
-        ciudad: city,
-        fecha_hora_inicio: startDate.toISOString(),
-        fecha_hora_fin: endDate.toISOString(),
-      };
+      const formDataToSend = new FormData();
+      formDataToSend.append('nombre', formData.nombre);
+      formDataToSend.append('apellido', formData.apellido);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('whatsapp', formData.whatsapp);
+      formDataToSend.append('ciudad', city);
+      formDataToSend.append('fecha_hora_inicio', startDate.toISOString());
+      formDataToSend.append('fecha_hora_fin', endDate.toISOString());
       
-      const response = await createBooking(bookingData);
+      if (city === "Virtual" && documento) {
+        formDataToSend.append('documento', documento);
+      }
+      
+      const response = await createBooking(formDataToSend);
       
       if (response.success) {
         setIsSuccess(true);
@@ -182,6 +186,7 @@ export default function BookingForm() {
             setDate(undefined);
             setTime("");
             setFormData({ nombre: "", apellido: "", email: "", whatsapp: "" });
+            setDocumento(null);
           }}
           className="mt-6 rounded-none bg-transparent text-[#cba258] border border-[#cba258] hover:bg-[#cba258] hover:text-black transition-all duration-300 h-12 px-8 font-medium tracking-wide"
         >
@@ -335,6 +340,40 @@ export default function BookingForm() {
           </div>
         </div>
       </div>
+
+      {/* 5. Documentos de Caso (Solo Virtual) */}
+      {city === "Virtual" && (
+        <div className={cn("space-y-4 pt-4 border-t border-zinc-800 transition-opacity duration-300", !time ? "opacity-30 pointer-events-none" : "opacity-100")}>
+          <Label className="flex items-center gap-2 text-sm font-medium text-zinc-300">
+            <FileText className="w-4 h-4 text-[#cba258]" />
+            5. Documentación del Caso (Opcional)
+          </Label>
+          <div className="relative group cursor-pointer">
+            <input 
+              type="file" 
+              accept=".pdf"
+              onChange={(e) => setDocumento(e.target.files?.[0] || null)}
+              className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
+              aria-label="Subir documento PDF"
+            />
+            <div className={`flex flex-col items-center justify-center border-2 border-dashed p-6 rounded-sm transition-all bg-[#0a0a0a] ${documento ? 'border-[#cba258] bg-[#cba258]/5' : 'border-zinc-800 group-hover:border-zinc-600'}`}>
+              {documento ? (
+                <>
+                  <CheckCircle2 className="w-8 h-8 text-[#cba258] mb-2" />
+                  <p className="text-white text-sm font-medium">{documento.name}</p>
+                  <p className="text-xs text-[#cba258] mt-1">{(documento.size / 1024 / 1024).toFixed(2)} MB</p>
+                </>
+              ) : (
+                <>
+                  <UploadCloud className="w-8 h-8 text-zinc-600 mb-2 group-hover:text-[#cba258] transition-colors" />
+                  <p className="text-zinc-400 text-sm">Haga clic o arrastre su documento en formato PDF</p>
+                  <p className="text-zinc-600 text-xs mt-1">Máximo 5MB</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="p-4 bg-red-950/50 border border-red-900/50 rounded-none text-red-200 text-sm animate-in fade-in slide-in-from-bottom-2">
