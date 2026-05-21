@@ -18,11 +18,12 @@ function getGoogleAuth() {
     return null;
   }
   
-  // Limpiar la llave privada de comillas que a veces se copian por error en Netlify
+  // Limpiar la llave privada y el email de comillas que a veces se copian por error en Netlify
+  const cleanEmail = process.env.GOOGLE_CLIENT_EMAIL.replace(/"/g, '').trim();
   const cleanKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '').trim();
 
   return new google.auth.JWT({
-    email: process.env.GOOGLE_CLIENT_EMAIL,
+    email: cleanEmail,
     key: cleanKey,
     scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar.readonly']
   });
