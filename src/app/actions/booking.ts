@@ -18,10 +18,13 @@ function getGoogleAuth() {
     return null;
   }
   
+  // Limpiar la llave privada de comillas que a veces se copian por error en Netlify
+  const cleanKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '').trim();
+
   return new google.auth.JWT({
     email: process.env.GOOGLE_CLIENT_EMAIL,
-    key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    scopes: ['https://www.googleapis.com/auth/calendar.events']
+    key: cleanKey,
+    scopes: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar.readonly']
   });
 }
 
@@ -148,9 +151,10 @@ export async function createBooking(data: {
       const auth = getGoogleAuth();
       if (auth && process.env.GOOGLE_CALENDAR_ID) {
         const calendar = google.calendar({ version: 'v3', auth });
+        const calendarId = process.env.GOOGLE_CALENDAR_ID.trim();
         
         await calendar.events.insert({
-          calendarId: process.env.GOOGLE_CALENDAR_ID,
+          calendarId: calendarId,
           requestBody: {
             summary: `Cita Legal: ${validation.data.nombre} ${validation.data.apellido}`,
             description: `Sede/Modalidad: ${validation.data.ciudad}\nCliente: ${validation.data.nombre} ${validation.data.apellido}\nEmail: ${validation.data.email}\nWhatsApp: ${validation.data.whatsapp}`,
@@ -255,7 +259,8 @@ export async function getAvailableTimeSlots(dateString: string) {
   } catch (error: any) {
     console.error('Error FATAL consultando disponibilidad en Google Calendar:', error);
     console.log(error); // Solicitado: log explícito del error completo
-    // Para no bloquear la UI si la API cae, devolvemos un array vacío pero con el mensaje, o fallamos con error
-    return { success: false, error: "No se pudo consultar la disponibilidad en este momento." };
+    // Devuelve el mensaje exacto para que el frontend pueda pintar la caja roja de error y sepamos qué pasa
+    const errMsg = error.message || error.toString();
+    return { success: false, error: `Error de Google API: ${errMsg}` };
   }
 }
