@@ -105,11 +105,13 @@ export async function createBooking(data: {
     };
   }
 
-  // 2. Insertar en Supabase
+  // 2. Insertar en Supabase (primero para obtener el ID y enviarlo en el correo)
   try {
-    const { error } = await supabase
+    const { data: dbData, error } = await supabase
       .from('appointments')
-      .insert([validation.data]);
+      .insert([validation.data])
+      .select('id')
+      .single();
 
     if (error) {
       console.error('Supabase insert error:', error);
@@ -120,12 +122,55 @@ export async function createBooking(data: {
       };
     }
 
-    // 3. Preparar formato de fechas para el correo
+    const citaId = dbData.id;
+    let googleEventId = null;
+
+    // 3. Crear Evento en Google Calendar
+    try {
+      const auth = getGoogleAuth();
+      if (auth && process.env.GOOGLE_CALENDAR_ID) {
+        const calendar = google.calendar({ version: 'v3', auth });
+        const calendarId = process.env.GOOGLE_CALENDAR_ID.trim();
+        
+        const eventResponse = await calendar.events.insert({
+          calendarId: calendarId,
+          requestBody: {
+            summary: `Cita Legal: ${validation.data.nombre} ${validation.data.apellido}`,
+            description: `Sede/Modalidad: ${validation.data.ciudad}\nCliente: ${validation.data.nombre} ${validation.data.apellido}\nEmail: ${validation.data.email}\nWhatsApp: ${validation.data.whatsapp}`,
+            start: {
+              dateTime: validation.data.fecha_hora_inicio,
+              timeZone: 'America/Caracas',
+            },
+            end: {
+              dateTime: validation.data.fecha_hora_fin,
+              timeZone: 'America/Caracas',
+            },
+          },
+        });
+        
+        googleEventId = eventResponse.data.id;
+        
+        // 3.1 Actualizar la base de datos con el ID del evento de Google
+        if (googleEventId) {
+          await supabase
+            .from('appointments')
+            .update({ google_event_id: googleEventId })
+            .eq('id', citaId);
+        }
+      } else {
+        console.warn('Credenciales de Google Calendar incompletas o no configuradas.');
+      }
+    } catch (calendarError) {
+      console.error('Error al crear evento en Google Calendar:', calendarError);
+      // No fallamos si el calendario falla, la cita ya está en Supabase.
+    }
+
+    // 4. Preparar formato de fechas para el correo
     const dateObj = new Date(validation.data.fecha_hora_inicio);
     const fechaFormatada = format(dateObj, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
     const horaFormatada = format(dateObj, "HH:mm");
 
-    // 4. Enviar correo de confirmación con Resend
+    // 5. Enviar correo de confirmación con Resend
     if (process.env.RESEND_API_KEY) {
       try {
         await resend.emails.send({
@@ -137,44 +182,14 @@ export async function createBooking(data: {
             ciudad: validation.data.ciudad,
             fecha: fechaFormatada,
             hora: horaFormatada,
+            citaId: citaId, // Pasamos el ID real a la plantilla
           }),
         });
       } catch (emailError) {
         console.error('Error enviando el correo con Resend:', emailError);
-        // No fallamos la operación completa si el correo falla
       }
     } else {
       console.warn("RESEND_API_KEY no configurada. El correo de confirmación no fue enviado.");
-    }
-
-    // 5. Crear Evento en Google Calendar
-    try {
-      const auth = getGoogleAuth();
-      if (auth && process.env.GOOGLE_CALENDAR_ID) {
-        const calendar = google.calendar({ version: 'v3', auth });
-        const calendarId = process.env.GOOGLE_CALENDAR_ID.trim();
-        
-        await calendar.events.insert({
-          calendarId: calendarId,
-          requestBody: {
-            summary: `Cita Legal: ${validation.data.nombre} ${validation.data.apellido}`,
-            description: `Sede/Modalidad: ${validation.data.ciudad}\nCliente: ${validation.data.nombre} ${validation.data.apellido}\nEmail: ${validation.data.email}\nWhatsApp: ${validation.data.whatsapp}`,
-            start: {
-              dateTime: validation.data.fecha_hora_inicio,
-              timeZone: 'America/Caracas', // Ajusta según la zona horaria real
-            },
-            end: {
-              dateTime: validation.data.fecha_hora_fin,
-              timeZone: 'America/Caracas',
-            },
-          },
-        });
-      } else {
-        console.warn('Credenciales de Google Calendar incompletas o no configuradas.');
-      }
-    } catch (calendarError) {
-      console.error('Error al crear evento en Google Calendar:', calendarError);
-      // No fallamos si el calendario falla, la cita ya está en Supabase.
     }
 
     return { success: true };
@@ -263,5 +278,56 @@ export async function getAvailableTimeSlots(dateString: string) {
     // Devuelve el mensaje exacto para que el frontend pueda pintar la caja roja de error y sepamos qué pasa
     const errMsg = error.message || error.toString();
     return { success: false, error: `Error de Google API: ${errMsg}` };
+  }
+}
+
+// ─── Cancelar Cita ────────────────────────────────────────────────
+export async function cancelBooking(citaId: string) {
+  try {
+    // 1. Obtener la cita de Supabase
+    const { data: cita, error: dbError } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('id', citaId)
+      .single();
+
+    if (dbError || !cita) {
+      return { success: false, error: "No se encontró la cita en la base de datos." };
+    }
+
+    // 2. Eliminar de Google Calendar si tiene google_event_id
+    if (cita.google_event_id) {
+      try {
+        const auth = getGoogleAuth();
+        const calendarId = process.env.GOOGLE_CALENDAR_ID?.trim();
+        if (auth && calendarId) {
+          const calendar = google.calendar({ version: 'v3', auth });
+          await calendar.events.delete({
+            calendarId: calendarId,
+            eventId: cita.google_event_id,
+          });
+          console.log(`Evento ${cita.google_event_id} eliminado de Google Calendar.`);
+        }
+      } catch (calendarError) {
+        console.error("No se pudo eliminar el evento de Google Calendar (puede que ya no exista):", calendarError);
+        // Continuamos de todas formas para eliminar la cita de la DB local
+      }
+    }
+
+    // 3. Eliminar la cita de Supabase
+    const { error: deleteError } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', citaId);
+
+    if (deleteError) {
+      console.error("Error al eliminar de Supabase:", deleteError);
+      return { success: false, error: "Error al eliminar la cita de la base de datos." };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error general al cancelar la cita:", err);
+    return { success: false, error: "Ocurrió un error inesperado al cancelar la cita." };
   }
 }

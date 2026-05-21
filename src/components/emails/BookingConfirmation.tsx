@@ -18,23 +18,32 @@ interface BookingConfirmationProps {
   ciudad: string;
   fecha: string;
   hora: string;
-  citaId?: string; // ID for management links
+  citaId?: string; // Nuevo prop para gestionar la cita
 }
 
 export default function BookingConfirmation({
-  nombre,
-  ciudad,
-  fecha,
-  hora,
-  citaId = "ejemplo-id", // Fallback for previews
+  nombre = "Cliente",
+  ciudad = "Sede Principal",
+  fecha = "15 de Diciembre de 2024",
+  hora = "10:00 AM",
+  citaId = "",
 }: BookingConfirmationProps) {
   
-  const isVirtual = ciudad.toLowerCase() === "virtual";
-  const mapUrl = isVirtual 
-    ? null 
-    : `https://maps.google.com/?q=Sede+${encodeURIComponent(ciudad)}+Abogados`;
+  // URLs para mapas
+  const locationUrls: Record<string, string> = {
+    "Valencia": "https://maps.google.com/?q=Valencia,Carabobo",
+    "Caracas": "https://maps.google.com/?q=Caracas,Distrito+Capital",
+    "La Guaira": "https://maps.google.com/?q=La+Guaira,Vargas",
+    "Tucacas": "https://maps.google.com/?q=Tucacas,Falcon",
+    "Virtual": "https://meet.google.com/"
+  };
 
-  const manageUrl = `https://tudominio.com/citas/gestionar/${citaId}`;
+  const isVirtual = ciudad.toLowerCase() === "virtual";
+  const mapUrl = locationUrls[ciudad] || locationUrls["Valencia"];
+
+  // URL base dinámica
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://effulgent-moonbeam-a4dc3f.netlify.app';
+  const manageUrl = citaId ? `${baseUrl}/citas/gestionar/${citaId}` : baseUrl;
 
   return (
     <Html>
@@ -59,7 +68,7 @@ export default function BookingConfirmation({
             <Text style={detailText}><strong>Fecha:</strong> {fecha}</Text>
             <Text style={detailText}><strong>Hora:</strong> {hora}</Text>
             
-            {!isVirtual && mapUrl && (
+            {!isVirtual && (
               <Section style={buttonContainer}>
                 <Button style={mapButton} href={mapUrl}>
                   Ver ubicación en el mapa
@@ -69,10 +78,17 @@ export default function BookingConfirmation({
           </Section>
           
           <Section style={manageContainer}>
-            <Text style={text}>¿Necesita realizar un cambio?</Text>
-            <Link href={manageUrl} style={manageLink}>
-              Reprogramar o Cancelar Cita
-            </Link>
+            {citaId && (
+              <Text style={footerText}>
+                ¿Necesita hacer cambios?{' '}
+                <Link href={manageUrl} style={manageLink}>
+                  Gestione o cancele su cita aquí
+                </Link>
+              </Text>
+            )}
+            <Text style={footerText}>
+              Este es un correo automático, por favor no responda directamente.
+            </Text>
           </Section>
 
           <Hr style={hr} />
@@ -181,4 +197,8 @@ const footer = {
   lineHeight: "22px",
   textAlign: "center" as const,
   fontWeight: "300",
+};
+const footerText = {
+  ...footer,
+  margin: "4px 0",
 };
