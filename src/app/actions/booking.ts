@@ -182,3 +182,59 @@ export async function createBooking(data: {
     };
   }
 }
+
+// ─── Consultar Disponibilidad en Tiempo Real ───────────────────
+export async function getAvailableTimeSlots(dateString: string) {
+  // dateString debe tener el formato "YYYY-MM-DD"
+  const standardSlots = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"];
+  
+  try {
+    const auth = getGoogleAuth();
+    if (!auth || !process.env.GOOGLE_CALENDAR_ID) {
+      // Fallback: Si no hay credenciales, devolver todos los horarios estándar
+      console.warn("Credenciales de Google no configuradas para freebusy.");
+      return { success: true, availableSlots: standardSlots };
+    }
+
+    const calendar = google.calendar({ version: 'v3', auth });
+    
+    // Configurar el inicio y fin del día en la zona horaria de Venezuela
+    const startDate = new Date(`${dateString}T00:00:00-04:00`);
+    const endDate = new Date(`${dateString}T23:59:59-04:00`);
+
+    const response = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: startDate.toISOString(),
+        timeMax: endDate.toISOString(),
+        timeZone: 'America/Caracas',
+        items: [{ id: process.env.GOOGLE_CALENDAR_ID }]
+      }
+    });
+
+    const busyBlocks = response.data.calendars?.[process.env.GOOGLE_CALENDAR_ID]?.busy || [];
+    
+    // Filtrar los horarios cruzándolos con los bloques ocupados
+    const availableSlots = standardSlots.filter(slot => {
+      // Crear objeto Date para el inicio y fin de cada "slot" potencial
+      const slotStart = new Date(`${dateString}T${slot}:00-04:00`);
+      const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000); // Duración de 1 hora
+
+      // Comprobar si el "slot" se solapa con algún bloque ocupado en Google Calendar
+      const isBusy = busyBlocks.some(busy => {
+        const busyStart = new Date(busy.start!);
+        const busyEnd = new Date(busy.end!);
+        // Hay solapamiento si: el slot empieza ANTES de que termine la ocupación
+        // Y el slot termina DESPUÉS de que empiece la ocupación
+        return slotStart < busyEnd && slotEnd > busyStart;
+      });
+
+      return !isBusy; // Si NO está ocupado, incluirlo en availableSlots
+    });
+
+    return { success: true, availableSlots };
+
+  } catch (error) {
+    console.error('Error consultando disponibilidad en Google Calendar:', error);
+    return { success: false, error: "No se pudo consultar la disponibilidad en este momento." };
+  }
+}
