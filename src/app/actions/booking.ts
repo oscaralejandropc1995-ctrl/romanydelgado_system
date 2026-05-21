@@ -209,7 +209,28 @@ export async function createBooking(data: {
 export async function getAvailableTimeSlots(dateString: string) {
   // dateString debe tener el formato "YYYY-MM-DD"
   // Horario: 9am a 6pm, pausa de almuerzo de 12pm a 2pm.
-  const standardSlots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"];
+  const allStandardSlots = ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"];
+  
+  // Obtener la hora actual en Caracas
+  const now = new Date();
+  const caracasNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Caracas' }));
+  const todayString = format(caracasNow, 'yyyy-MM-dd');
+  
+  let standardSlots = allStandardSlots;
+  
+  // Si el cliente está consultando la disponibilidad para HOY, filtramos las horas que ya pasaron
+  if (dateString === todayString) {
+    const currentHour = caracasNow.getHours();
+    const currentMinute = caracasNow.getMinutes();
+    
+    standardSlots = allStandardSlots.filter(slot => {
+      const [slotHour, slotMinute] = slot.split(':').map(Number);
+      // Damos un margen de 15 minutos (no se puede agendar una cita a las 2:00 PM si son las 1:50 PM)
+      if (slotHour > currentHour) return true;
+      if (slotHour === currentHour && slotMinute > currentMinute + 15) return true;
+      return false;
+    });
+  }
   
   try {
     const auth = getGoogleAuth();
