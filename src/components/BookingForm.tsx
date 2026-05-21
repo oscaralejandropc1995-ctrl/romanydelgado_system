@@ -43,6 +43,7 @@ export default function BookingForm() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
 
   const isDayDisabled = (dateToCheck: Date) => {
     if (isBefore(startOfDay(dateToCheck), startOfDay(new Date()))) {
@@ -71,11 +72,13 @@ export default function BookingForm() {
     setDate(undefined);
     setTime("");
     setErrorMessage(null);
+    setSlotsError(null);
   };
 
   const handleDateSelect = async (selectedDate: Date | undefined) => {
     setDate(selectedDate);
     setTime(""); // Resetear hora si cambia el día
+    setSlotsError(null);
     if (!selectedDate) {
       setAvailableSlots([]);
       return;
@@ -92,7 +95,7 @@ export default function BookingForm() {
     if (response.success && response.availableSlots) {
       setAvailableSlots(response.availableSlots);
     } else {
-      setErrorMessage(response.error || "Error al cargar la disponibilidad.");
+      setSlotsError(response.error || "Error al cargar la disponibilidad.");
       setAvailableSlots([]);
     }
     
@@ -248,6 +251,10 @@ export default function BookingForm() {
           <div className="flex items-center gap-3 text-zinc-400 py-4 animate-in fade-in">
             <div className="w-5 h-5 border-2 border-zinc-600 border-t-[#cba258] rounded-full animate-spin" />
             <span className="text-sm">Consultando disponibilidad en tiempo real...</span>
+          </div>
+        ) : slotsError ? (
+          <div className="p-4 bg-red-950/50 border border-red-900/50 text-red-200 text-sm animate-in fade-in">
+            {slotsError}
           </div>
         ) : availableSlots.length === 0 && date ? (
           <div className="p-4 bg-zinc-900/50 border border-zinc-800 text-zinc-400 text-sm animate-in fade-in">
